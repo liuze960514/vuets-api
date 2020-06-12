@@ -15,7 +15,9 @@ const User = require('../../models/User');
 // @desc   返回的请求的json数据
 // @access public
 router.get('/test', (req, res) => {
-  res.json({ msg: 'login works' });
+  res.json({
+    msg: 'login works'
+  });
 });
 
 // @route  POST api/users/addUser
@@ -23,16 +25,23 @@ router.get('/test', (req, res) => {
 // @access public
 router.post(
   '/addUser',
-  passport.authenticate('jwt', { session: false }),
+  passport.authenticate('jwt', {
+    session: false
+  }),
   (req, res) => {
     User.find().then(users => {
       if (users.length <= 10) {
         // 查询数据库中是否拥有邮箱
-        User.findOne({ username: req.body.username }).then(user => {
+        User.findOne({
+          username: req.body.username
+        }).then(user => {
           if (user) {
-            return res.status(400).json('用户名已被注册!');
+            return res.json({
+              state: 'err',
+              msg: '用户名已被注册!'
+            });
           } else {
-            const avatar = gravatar.url(req.body.username, {
+            const avatar = gravatar.url(req.body.email, {
               s: '200',
               r: 'pg',
               d: 'mm'
@@ -75,24 +84,72 @@ router.post(
           }
         });
       } else {
-        res.status(400).json('最多能添加10个用户');
+        res.json({
+          state: 'err',
+          msg: '最多能添加10个用户'
+        });
       }
     });
   }
 );
 
+// @route  POST api/users/register
+// @desc   返回 json 数据 
+// @access public
+router.post('/register', (req, res) => {
+  const {
+    username,
+    email,
+    pwd
+  } = req.body;
+
+  User.findOne({
+    username
+  }).then(user => {
+    if (!user) {
+      const avatar = gravatar.url(email, {
+        s: '200',
+        r: 'pg',
+        d: 'mm'
+      });
+
+      const newUser = new User({
+        username,
+        pwd,
+        email,
+        avatar
+      })
+
+      newUser.save().then(user => {
+        return res.json({
+          state: 'suc',
+          msg: '注册成功'
+        })
+      }).catch(err => console.log(err))
+    } else {
+      return res.json({
+        state: 'err',
+        msg: '用户名已存在'
+      })
+    }
+  }).catch(err => {
+    console.log(err)
+  })
+})
+
 // @route  POST api/users/login
 // @desc   返回token jwt passport
 // @access public
-
 router.post('/login', (req, res) => {
   const username = req.body.username;
   const pwd = req.body.pwd;
   const autoLogin = req.body.autoLogin;
   // 查询数据库
-  User.findOne({ username }).then(user => {
+  User.findOne({
+    username
+  }).then(user => {
     if (!user) {
-      return res.status(400).json({
+      return res.json({
         state: 'failed',
         msg: '用户不存在!'
       });
@@ -107,8 +164,9 @@ router.post('/login', (req, res) => {
 
       jwt.sign(
         rule,
-        keys.secretOrKey,
-        { expiresIn: autoLogin ? 604800 : 3600 },
+        keys.secretOrKey, {
+          expiresIn: autoLogin ? 604800 : 3600
+        },
         (err, token) => {
           if (err) throw err;
           res.status(200).json({
@@ -129,8 +187,9 @@ router.post('/login', (req, res) => {
         };
         jwt.sign(
           rule,
-          keys.secretOrKey,
-          { expiresIn: autoLogin ? 604800 : 3600 },
+          keys.secretOrKey, {
+            expiresIn: autoLogin ? 604800 : 3600
+          },
           (err, token) => {
             if (err) throw err;
             res.json({
@@ -141,7 +200,7 @@ router.post('/login', (req, res) => {
           }
         );
       } else {
-        return res.status(400).json({
+        return res.json({
           state: 'failed',
           msg: '密码错误!'
         });
@@ -155,7 +214,9 @@ router.post('/login', (req, res) => {
 // @access private
 router.post(
   '/editUser/:id',
-  passport.authenticate('jwt', { session: false }),
+  passport.authenticate('jwt', {
+    session: false
+  }),
   (req, res) => {
     const userFields = {};
 
@@ -176,11 +237,13 @@ router.post(
 
     if (req.body.key) userFields.key = req.body.key;
 
-    User.findOneAndUpdate(
-      { _id: req.params.id },
-      { $set: userFields },
-      { new: true }
-    ).then(() =>
+    User.findOneAndUpdate({
+      _id: req.params.id
+    }, {
+      $set: userFields
+    }, {
+      new: true
+    }).then(() =>
       res.status(200).json({
         state: 'suc',
         msg: '编辑用户成功'
@@ -195,12 +258,14 @@ router.post(
 
 router.get(
   '/allUsers',
-  passport.authenticate('jwt', { session: false }),
+  passport.authenticate('jwt', {
+    session: false
+  }),
   (req, res) => {
     User.find()
       .then(users => {
         if (!users) {
-          return res.status(400).json({
+          return res.json({
             state: 'failed',
             msg: '没有任何用户信息'
           });
@@ -212,7 +277,7 @@ router.get(
           datas: users
         });
       })
-      .catch(err => res.status(400).json(err));
+      .catch(err => res.json(err));
   }
 );
 
@@ -221,16 +286,22 @@ router.get(
 // @access Private
 router.delete(
   '/deleteUser/:id',
-  passport.authenticate('jwt', { session: false }),
+  passport.authenticate('jwt', {
+    session: false
+  }),
   (req, res) => {
-    User.findById({ _id: req.params.id }).then(user => {
+    User.findById({
+      _id: req.params.id
+    }).then(user => {
       if (user.username == 'admin') {
-        res.status(400).json({
+        res.json({
           state: 'failed',
           msg: 'admin超级管理员无法删除'
         });
       } else {
-        User.findOneAndRemove({ _id: req.params.id })
+        User.findOneAndRemove({
+            _id: req.params.id
+          })
           .then(user => {
             user.save().then(user =>
               res.status(200).json({
@@ -240,7 +311,7 @@ router.delete(
             );
           })
           .catch(err =>
-            res.status(400).json({
+            res.json({
               state: 'failed',
               msg: '删除失败!'
             })
@@ -255,11 +326,15 @@ router.delete(
 // @access public
 router.post(
   '/changePwd',
-  passport.authenticate('jwt', { session: false }),
+  passport.authenticate('jwt', {
+    session: false
+  }),
   (req, res) => {
-    User.findOne({ username: req.body.username }).then(user => {
+    User.findOne({
+      username: req.body.username
+    }).then(user => {
       if (!user) {
-        res.status(400).json({
+        res.json({
           state: 'failed',
           msg: '该用户不存在'
         });
@@ -273,11 +348,13 @@ router.post(
           des: req.body.des ? req.body.des : user.des
         };
 
-        User.findOneAndUpdate(
-          { _id: user._id },
-          { $set: newUser },
-          { new: true }
-        ).then(() =>
+        User.findOneAndUpdate({
+          _id: user._id
+        }, {
+          $set: newUser
+        }, {
+          new: true
+        }).then(() =>
           res.status(200).json({
             state: 'suc',
             msg: '密码修改成功'
@@ -292,9 +369,11 @@ router.post(
 // @desc   找回密码成功
 // @access public
 router.post('/findPwd', (req, res) => {
-  User.findOne({ username: req.body.username }).then(user => {
+  User.findOne({
+    username: req.body.username
+  }).then(user => {
     if (!user) {
-      res.status(400).json({
+      res.json({
         state: 'failed',
         msg: '该用户不存在'
       });
@@ -308,14 +387,14 @@ router.post('/findPwd', (req, res) => {
         auth: {
           // user: process.env.EMAIL,
           // pass: process.env.PASSWORD
-          user: '309595700@qq.com',
-          pass: 'zlwzpmabwymvcaib'
+          user: '2411509324@qq.com',
+          pass: 'mltzgrxsfnpbdidh'
         }
       });
 
       // step2
       let mailOptions = {
-        from: '309595700@qq.com',
+        from: '2411509324@qq.com',
         to: req.body.email,
         subject: '密码找回',
         text: `您的账号是${user.username},密码是: ${user.pwd}`
@@ -324,7 +403,7 @@ router.post('/findPwd', (req, res) => {
       // step3
       transporter.sendMail(mailOptions, (err, data) => {
         if (err) {
-          res.status(400).json(err);
+          res.json(err);
         } else {
           res.status(200).json({
             state: 'suc',

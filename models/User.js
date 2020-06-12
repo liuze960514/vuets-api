@@ -12,20 +12,23 @@ const UserSchema = new Schema({
   },
   pwd: {
     type: String,
-    default: '123456'
+    required: true
   },
   role: {
     type: String
   },
   key: {
     type: String,
-    required: true
+    default: 'visitor'
   },
   avatar: {
     type: String
   },
   autoLogin: {
     type: Boolean
+  },
+  email: {
+    type: String
   },
   date: {
     type: Date,

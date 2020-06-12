@@ -31,7 +31,7 @@ app.use('/api/users', users);
 app.use('/api/profiles', profiles);
 
 const port = process.env.PORT || 5200;
-const hostName = '127.0.0.1'
+const hostName = 'localhost'
 
 app.listen(port, hostName, err => {
   if (err) {
